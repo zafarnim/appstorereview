@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Review, ReviewsResponse, App } from '@/types';
 import {
   Header,
@@ -11,7 +11,16 @@ import {
   RatingChart,
   StatsCards,
   AppCard,
+  TrendChart,
+  VersionAnalytics,
+  SortDropdown,
+  DateFilter,
+  SentimentBreakdown,
+  ReviewsTable,
 } from '@/components';
+import type { SortOption, DateRange } from '@/components';
+
+type ViewMode = 'cards' | 'table';
 
 export default function DashboardPage() {
   const [apps, setApps] = useState<App[]>([]);
@@ -22,6 +31,9 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [country, setCountry] = useState('us');
   const [ratingFilter, setRatingFilter] = useState<number | null>(null);
+  const [sortBy, setSortBy] = useState<SortOption>('newest');
+  const [dateRange, setDateRange] = useState<DateRange>('all');
+  const [viewMode, setViewMode] = useState<ViewMode>('cards');
   const [stats, setStats] = useState({
     totalCount: 0,
     averageRating: 0,
@@ -91,12 +103,41 @@ export default function DashboardPage() {
     }
   }, [country]);
 
-  const filteredReviews = reviews.filter((review) => {
-    if (ratingFilter && review.rating !== ratingFilter) {
-      return false;
+  // Filter and sort reviews
+  const filteredReviews = useMemo(() => {
+    let filtered = [...reviews];
+
+    // Date filter
+    if (dateRange !== 'all') {
+      const now = new Date();
+      const days = dateRange === '7d' ? 7 : dateRange === '30d' ? 30 : dateRange === '90d' ? 90 : 365;
+      const cutoff = new Date(now.setDate(now.getDate() - days));
+      filtered = filtered.filter((r) => new Date(r.date) >= cutoff);
     }
-    return true;
-  });
+
+    // Rating filter
+    if (ratingFilter) {
+      filtered = filtered.filter((r) => r.rating === ratingFilter);
+    }
+
+    // Sort
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'newest':
+          return new Date(b.date).getTime() - new Date(a.date).getTime();
+        case 'oldest':
+          return new Date(a.date).getTime() - new Date(b.date).getTime();
+        case 'highest':
+          return b.rating - a.rating;
+        case 'lowest':
+          return a.rating - b.rating;
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [reviews, ratingFilter, sortBy, dateRange]);
 
   const positiveCount = reviews.filter((r) => r.rating >= 4).length;
   const negativeCount = reviews.filter((r) => r.rating <= 2).length;
@@ -105,7 +146,7 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-[#fafafa]">
       <Header />
 
-      <main className="max-w-6xl mx-auto px-6 py-10">
+      <main className="max-w-7xl mx-auto px-6 py-10">
         {/* Search Section */}
         <div className="text-center mb-10">
           <h1 className="text-2xl font-semibold text-zinc-900 mb-2 tracking-tight">
@@ -143,11 +184,7 @@ export default function DashboardPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {apps.map((app) => (
-                <AppCard
-                  key={app.id}
-                  app={app}
-                  onSelect={handleAppSelect}
-                />
+                <AppCard key={app.id} app={app} onSelect={handleAppSelect} />
               ))}
             </div>
           </div>
@@ -187,31 +224,16 @@ export default function DashboardPage() {
         {isLoadingReviews && (
           <div className="flex items-center justify-center py-16">
             <div className="flex items-center gap-3">
-              <svg
-                className="animate-spin h-5 w-5 text-zinc-400"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                />
+              <svg className="animate-spin h-5 w-5 text-zinc-400" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
               <span className="text-[13px] text-zinc-500">Loading reviews...</span>
             </div>
           </div>
         )}
 
-        {/* Stats and Results */}
+        {/* Analytics Dashboard */}
         {selectedApp && reviews.length > 0 && !isLoadingReviews && (
           <>
             {/* Stats Cards */}
@@ -224,12 +246,46 @@ export default function DashboardPage() {
               />
             </div>
 
-            {/* Rating Filter */}
-            <div className="mb-6">
-              <RatingFilter value={ratingFilter} onChange={setRatingFilter} />
+            {/* Analytics Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+              <TrendChart reviews={reviews} days={30} />
+              <SentimentBreakdown reviews={reviews} />
+              <VersionAnalytics reviews={reviews} />
             </div>
 
-            {/* Main Content */}
+            {/* Filters Row */}
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-6 p-4 bg-white rounded-xl border border-zinc-100">
+              <div className="flex flex-wrap items-center gap-3">
+                <DateFilter value={dateRange} onChange={setDateRange} />
+                <div className="w-px h-5 bg-zinc-200" />
+                <RatingFilter value={ratingFilter} onChange={setRatingFilter} />
+              </div>
+              <div className="flex items-center gap-3">
+                <SortDropdown value={sortBy} onChange={setSortBy} />
+                <div className="flex items-center border border-zinc-200 rounded-lg overflow-hidden">
+                  <button
+                    onClick={() => setViewMode('cards')}
+                    className={`p-1.5 ${viewMode === 'cards' ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
+                    title="Card View"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => setViewMode('table')}
+                    className={`p-1.5 ${viewMode === 'table' ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
+                    title="Table View"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Reviews Section */}
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
               {/* Sidebar - Rating Chart */}
               <div className="lg:col-span-1 lg:sticky lg:top-20 lg:self-start">
@@ -239,19 +295,24 @@ export default function DashboardPage() {
                 />
               </div>
 
-              {/* Reviews List */}
+              {/* Reviews List/Table */}
               <div className="lg:col-span-3">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-[13px] font-medium text-zinc-500">
                     {filteredReviews.length} reviews
+                    {dateRange !== 'all' && ` (${dateRange})`}
                   </h2>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {filteredReviews.map((review) => (
-                    <ReviewCard key={review.id} review={review} />
-                  ))}
-                </div>
+                {viewMode === 'cards' ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {filteredReviews.map((review) => (
+                      <ReviewCard key={review.id} review={review} />
+                    ))}
+                  </div>
+                ) : (
+                  <ReviewsTable reviews={filteredReviews} />
+                )}
               </div>
             </div>
           </>

@@ -7,3 +7,12 @@ export { default as StarRating } from './StarRating';
 export { default as RatingChart } from './RatingChart';
 export { default as StatsCards } from './StatsCards';
 export { default as AppCard } from './AppCard';
+export { default as TrendChart } from './TrendChart';
+export { default as VersionAnalytics } from './VersionAnalytics';
+export { default as SortDropdown } from './SortDropdown';
+export { default as DateFilter } from './DateFilter';
+export { default as SentimentBreakdown } from './SentimentBreakdown';
+export { default as ReviewsTable } from './ReviewsTable';
+
+export type { SortOption } from './SortDropdown';
+export type { DateRange } from './DateFilter';
