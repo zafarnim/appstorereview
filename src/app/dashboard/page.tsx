@@ -248,7 +248,7 @@ export default function DashboardPage() {
 
             {/* Analytics Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-              <TrendChart reviews={reviews} days={365} />
+              <TrendChart reviews={reviews} />
               <SentimentBreakdown reviews={reviews} />
               <VersionAnalytics reviews={reviews} />
             </div>

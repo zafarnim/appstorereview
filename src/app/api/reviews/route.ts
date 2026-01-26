@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const data = await fetchAllReviews(appId, country, 5);
+    const data = await fetchAllReviews(appId, country, 10); // 10 pages = up to 500 reviews
     return NextResponse.json(data);
   } catch (error) {
     console.error('API Error:', error);
