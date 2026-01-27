@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import { App } from '@/types';
+import { useState, useEffect } from 'react';
+import { App, COUNTRIES } from '@/types';
 import StarRating from './StarRating';
+import AppScreenshots from './AppScreenshots';
 import Image from 'next/image';
 
 interface AppDetailPanelProps {
@@ -10,9 +11,67 @@ interface AppDetailPanelProps {
   onClose: () => void;
 }
 
+interface CountryAvailability {
+  code: string;
+  name: string;
+  flag: string;
+  available: boolean;
+  rating?: number;
+  reviewCount?: number;
+}
+
 export default function AppDetailPanel({ app, onClose }: AppDetailPanelProps) {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isReleaseNotesExpanded, setIsReleaseNotesExpanded] = useState(false);
+  const [countryAvailability, setCountryAvailability] = useState<CountryAvailability[]>([]);
+  const [isLoadingAvailability, setIsLoadingAvailability] = useState(true);
+
+  // Fetch country availability on mount
+  useEffect(() => {
+    const checkAvailability = async () => {
+      setIsLoadingAvailability(true);
+      const results: CountryAvailability[] = [];
+
+      // Check availability in parallel
+      const checks = COUNTRIES.map(async (country) => {
+        try {
+          const response = await fetch(`/api/lookup?appId=${app.id}&country=${country.code}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.app) {
+              return {
+                code: country.code,
+                name: country.name,
+                flag: country.flag,
+                available: true,
+                rating: data.app.rating,
+                reviewCount: data.app.reviewCount,
+              };
+            }
+          }
+          return {
+            code: country.code,
+            name: country.name,
+            flag: country.flag,
+            available: false,
+          };
+        } catch {
+          return {
+            code: country.code,
+            name: country.name,
+            flag: country.flag,
+            available: false,
+          };
+        }
+      });
+
+      const resolved = await Promise.all(checks);
+      setCountryAvailability(resolved);
+      setIsLoadingAvailability(false);
+    };
+
+    checkAvailability();
+  }, [app.id]);
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
@@ -208,6 +267,60 @@ export default function AppDetailPanel({ app, onClose }: AppDetailPanelProps) {
           </div>
         </div>
       )}
+
+      {/* Screenshots */}
+      {app.screenshotUrls && app.screenshotUrls.length > 0 && (
+        <div className="mb-5">
+          <AppScreenshots
+            screenshots={app.screenshotUrls}
+            ipadScreenshots={app.ipadScreenshotUrls}
+            appName={app.name}
+          />
+        </div>
+      )}
+
+      {/* Country Availability */}
+      <div className="mb-5">
+        <p className="text-[11px] text-zinc-400 uppercase tracking-wider mb-3">Available In</p>
+        {isLoadingAvailability ? (
+          <div className="flex items-center gap-2">
+            <svg className="animate-spin h-4 w-4 text-zinc-400" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+            <span className="text-[12px] text-zinc-500">Checking availability...</span>
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+            {countryAvailability.map((country) => (
+              <div
+                key={country.code}
+                className={`flex flex-col items-center gap-1 p-2 rounded-lg border transition-colors ${
+                  country.available
+                    ? 'bg-emerald-50 border-emerald-100'
+                    : 'bg-zinc-50 border-zinc-100 opacity-50'
+                }`}
+                title={country.available ? `${country.rating?.toFixed(1) || 'N/A'} rating, ${country.reviewCount || 0} reviews` : 'Not available'}
+              >
+                <span className="text-[18px]">{country.flag}</span>
+                <span className="text-[10px] font-medium text-zinc-700">{country.code.toUpperCase()}</span>
+                {country.available && country.rating ? (
+                  <span className="text-[9px] text-zinc-500">{country.rating.toFixed(1)}★</span>
+                ) : country.available ? (
+                  <span className="text-[9px] text-emerald-600">✓</span>
+                ) : (
+                  <span className="text-[9px] text-zinc-400">—</span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        {!isLoadingAvailability && (
+          <p className="text-[10px] text-zinc-400 mt-2">
+            Available in {countryAvailability.filter(c => c.available).length} of {countryAvailability.length} regions
+          </p>
+        )}
+      </div>
 
       {/* Links */}
       <div className="flex items-center gap-3 pt-4 border-t border-zinc-100">

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { PopularApp } from '@/types';
+import { PopularApp, COUNTRIES } from '@/types';
 import StarRating from './StarRating';
 import Image from 'next/image';
 
@@ -28,9 +28,10 @@ interface PopularAppsProps {
   country?: string;
 }
 
-export default function PopularApps({ onSelectApp, country = 'us' }: PopularAppsProps) {
+export default function PopularApps({ onSelectApp, country: initialCountry }: PopularAppsProps) {
   const [apps, setApps] = useState<PopularApp[]>([]);
   const [category, setCategory] = useState<CategoryType>('business');
+  const [selectedCountry, setSelectedCountry] = useState(initialCountry || 'se');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,7 +40,7 @@ export default function PopularApps({ onSelectApp, country = 'us' }: PopularApps
       setIsLoading(true);
       setError(null);
       try {
-        const response = await fetch(`/api/popular?genre=${category}&country=${country}`);
+        const response = await fetch(`/api/popular?genre=${category}&country=${selectedCountry}`);
         if (!response.ok) throw new Error('Failed to fetch popular apps');
         const data = await response.json();
         setApps(data.apps || []);
@@ -51,7 +52,7 @@ export default function PopularApps({ onSelectApp, country = 'us' }: PopularApps
     };
 
     fetchApps();
-  }, [category, country]);
+  }, [category, selectedCountry]);
 
   const formatReviewCount = (count: number) => {
     if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
@@ -60,6 +61,8 @@ export default function PopularApps({ onSelectApp, country = 'us' }: PopularApps
   };
 
   const currentCategory = CATEGORIES.find(c => c.id === category);
+
+  const currentCountryData = COUNTRIES.find(c => c.code === selectedCountry);
 
   return (
     <div className="bg-white rounded-xl border border-zinc-100 p-5">
@@ -73,6 +76,31 @@ export default function PopularApps({ onSelectApp, country = 'us' }: PopularApps
               {currentCategory.icon} {currentCategory.label}
             </span>
           )}
+        </div>
+        {/* Country Selector */}
+        <div className="relative">
+          <select
+            value={selectedCountry}
+            onChange={(e) => setSelectedCountry(e.target.value)}
+            className="appearance-none bg-zinc-50 border border-zinc-200 rounded-lg pl-8 pr-8 py-1.5 text-[12px] font-medium text-zinc-700 cursor-pointer hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-300"
+          >
+            {COUNTRIES.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.flag} {c.name}
+              </option>
+            ))}
+          </select>
+          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[14px]">
+            {currentCountryData?.flag}
+          </span>
+          <svg
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
         </div>
       </div>
 
