@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Review, ReviewsResponse, App } from '@/types';
 import {
   Header,
@@ -17,7 +18,6 @@ import {
   DateFilter,
   SentimentBreakdown,
   ReviewsTable,
-  AppScreenshots,
   AppDetailPanel,
   PopularApps,
   KeywordCloud,
@@ -32,14 +32,35 @@ import { filterReviewsByKeyword } from '@/lib/textAnalysis';
 type ViewMode = 'cards' | 'table';
 type TabView = 'analytics' | 'keywords' | 'regions' | 'compare';
 
+// Wrapper component to handle Suspense boundary for useSearchParams
 export default function DashboardPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#fafafa] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <svg className="animate-spin h-8 w-8 text-zinc-400" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+          </svg>
+          <span className="text-[14px] text-zinc-500">Loading dashboard...</span>
+        </div>
+      </div>
+    }>
+      <DashboardContent />
+    </Suspense>
+  );
+}
+
+function DashboardContent() {
+  const searchParams = useSearchParams();
   const [apps, setApps] = useState<App[]>([]);
   const [selectedApp, setSelectedApp] = useState<App | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isLoadingReviews, setIsLoadingReviews] = useState(false);
+  const [isLoadingApp, setIsLoadingApp] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [country, setCountry] = useState('us');
+  const [country, setCountry] = useState('se');
   const [ratingFilter, setRatingFilter] = useState<number | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [dateRange, setDateRange] = useState<DateRange>('all');
@@ -53,6 +74,31 @@ export default function DashboardPage() {
     averageRating: 0,
     ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
   });
+
+  // Load app from URL parameter on mount
+  useEffect(() => {
+    const appId = searchParams.get('app');
+    if (appId && !selectedApp) {
+      const loadApp = async () => {
+        setIsLoadingApp(true);
+        try {
+          const response = await fetch(`/api/lookup?appId=${appId}&country=${country}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.app) {
+              setSelectedApp(data.app);
+              fetchReviews(data.app.id);
+            }
+          }
+        } catch (err) {
+          console.error('Failed to load app:', err);
+        } finally {
+          setIsLoadingApp(false);
+        }
+      };
+      loadApp();
+    }
+  }, [searchParams]);
 
   const searchApps = async (query: string) => {
     setIsSearching(true);
@@ -271,8 +317,21 @@ export default function DashboardPage() {
           </div>
         )}
 
+        {/* Loading App from URL */}
+        {isLoadingApp && (
+          <div className="flex items-center justify-center py-20">
+            <div className="flex flex-col items-center gap-4">
+              <svg className="animate-spin h-8 w-8 text-zinc-400" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              <span className="text-[14px] text-zinc-500">Loading app details...</span>
+            </div>
+          </div>
+        )}
+
         {/* Selected App Panel */}
-        {selectedApp && (
+        {selectedApp && !isLoadingApp && (
           <AppDetailPanel
             app={selectedApp}
             onClose={() => {
@@ -280,19 +339,10 @@ export default function DashboardPage() {
               setReviews([]);
               setKeywordFilter(null);
               setResponseFilter(null);
+              // Clear URL parameter
+              window.history.replaceState({}, '', '/dashboard');
             }}
           />
-        )}
-
-        {/* App Screenshots */}
-        {selectedApp && selectedApp.screenshotUrls && selectedApp.screenshotUrls.length > 0 && (
-          <div className="mb-6">
-            <AppScreenshots
-              screenshots={selectedApp.screenshotUrls}
-              ipadScreenshots={selectedApp.ipadScreenshotUrls}
-              appName={selectedApp.name}
-            />
-          </div>
         )}
 
         {/* Loading Reviews */}
