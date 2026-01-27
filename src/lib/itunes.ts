@@ -190,14 +190,37 @@ export async function lookupApp(appId: string, country: string = 'us'): Promise<
   };
 }
 
+// Genre IDs for iTunes API
+export const GENRE_IDS: Record<string, number> = {
+  business: 6000,
+  productivity: 6007,
+  finance: 6015,
+  health: 6013,
+  social: 6005,
+  lifestyle: 6012,
+  education: 6017,
+  entertainment: 6016,
+  utilities: 6002,
+  travel: 6003,
+  food: 6023,
+  shopping: 6024,
+  news: 6009,
+  weather: 6001,
+  sports: 6004,
+  music: 6011,
+  photo: 6008,
+  navigation: 6010,
+};
+
+export type GenreType = keyof typeof GENRE_IDS;
+
 // Fetch popular/top apps from iTunes RSS feeds
 export async function fetchPopularApps(
-  genre: 'business' | 'productivity' = 'business',
+  genre: GenreType = 'business',
   country: string = 'us',
   limit: number = 20
 ): Promise<PopularApp[]> {
-  // Genre IDs: Business = 6000, Productivity = 6007
-  const genreId = genre === 'business' ? 6000 : 6007;
+  const genreId = GENRE_IDS[genre] || 6000;
 
   const url = `https://itunes.apple.com/rss/topfreeapplications/limit=${limit}/genre=${genreId}/json?cc=${country}`;
 
