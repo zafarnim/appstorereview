@@ -10,6 +10,10 @@ export interface Review {
   country: string;
   version?: string;
   helpful?: number;
+  developerResponse?: {
+    body: string;
+    modified: string;
+  };
 }
 
 export interface App {
@@ -20,6 +24,45 @@ export interface App {
   rating: number;
   reviewCount: number;
   category: string;
+  // Enhanced fields
+  screenshotUrls?: string[];
+  ipadScreenshotUrls?: string[];
+  version?: string;
+  releaseDate?: string;
+  currentVersionReleaseDate?: string;
+  contentRating?: string;
+  price?: number;
+  formattedPrice?: string;
+  description?: string;
+  releaseNotes?: string;
+  bundleId?: string;
+  minimumOsVersion?: string;
+  fileSizeBytes?: string;
+  developerId?: string;
+  developerUrl?: string;
+  sellerUrl?: string;
+  genres?: string[];
+  trackUrl?: string;
+}
+
+export interface PopularApp extends App {
+  rank: number;
+}
+
+export interface RegionStats {
+  country: string;
+  countryName: string;
+  flag: string;
+  rating: number;
+  reviewCount: number;
+  reviews?: Review[];
+}
+
+export interface KeywordData {
+  word: string;
+  count: number;
+  sentiment: 'positive' | 'neutral' | 'negative';
+  avgRating: number;
 }
 
 export interface ReviewsResponse {

@@ -17,10 +17,20 @@ import {
   DateFilter,
   SentimentBreakdown,
   ReviewsTable,
+  AppScreenshots,
+  AppDetailPanel,
+  PopularApps,
+  KeywordCloud,
+  RegionComparison,
+  CompareView,
+  ExportButton,
+  ResponseRateCard,
 } from '@/components';
 import type { SortOption, DateRange } from '@/components';
+import { filterReviewsByKeyword } from '@/lib/textAnalysis';
 
 type ViewMode = 'cards' | 'table';
+type TabView = 'analytics' | 'keywords' | 'regions' | 'compare';
 
 export default function DashboardPage() {
   const [apps, setApps] = useState<App[]>([]);
@@ -34,6 +44,10 @@ export default function DashboardPage() {
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [dateRange, setDateRange] = useState<DateRange>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('cards');
+  const [activeTab, setActiveTab] = useState<TabView>('analytics');
+  const [keywordFilter, setKeywordFilter] = useState<string | null>(null);
+  const [responseFilter, setResponseFilter] = useState<boolean | null>(null);
+  const [compareApps, setCompareApps] = useState<App[]>([]);
   const [stats, setStats] = useState({
     totalCount: 0,
     averageRating: 0,
@@ -94,7 +108,27 @@ export default function DashboardPage() {
 
   const handleAppSelect = (app: App) => {
     setSelectedApp(app);
+    setKeywordFilter(null);
+    setResponseFilter(null);
     fetchReviews(app.id);
+  };
+
+  const handlePopularAppSelect = (app: App) => {
+    setApps([]);
+    setSelectedApp(app);
+    setKeywordFilter(null);
+    setResponseFilter(null);
+    fetchReviews(app.id);
+  };
+
+  const handleAddToCompare = (app: App) => {
+    if (compareApps.length < 3 && !compareApps.find(a => a.id === app.id)) {
+      setCompareApps([...compareApps, app]);
+    }
+  };
+
+  const handleRemoveFromCompare = (appId: string) => {
+    setCompareApps(compareApps.filter(a => a.id !== appId));
   };
 
   useEffect(() => {
@@ -106,6 +140,18 @@ export default function DashboardPage() {
   // Filter and sort reviews
   const filteredReviews = useMemo(() => {
     let filtered = [...reviews];
+
+    // Keyword filter
+    if (keywordFilter) {
+      filtered = filterReviewsByKeyword(filtered, keywordFilter);
+    }
+
+    // Response filter
+    if (responseFilter !== null) {
+      filtered = filtered.filter(r =>
+        responseFilter ? !!r.developerResponse : !r.developerResponse
+      );
+    }
 
     // Date filter
     if (dateRange !== 'all') {
@@ -137,7 +183,7 @@ export default function DashboardPage() {
     });
 
     return filtered;
-  }, [reviews, ratingFilter, sortBy, dateRange]);
+  }, [reviews, ratingFilter, sortBy, dateRange, keywordFilter, responseFilter]);
 
   const positiveCount = reviews.filter((r) => r.rating >= 4).length;
   const negativeCount = reviews.filter((r) => r.rating <= 2).length;
@@ -174,6 +220,16 @@ export default function DashboardPage() {
           </div>
         )}
 
+        {/* Popular Apps Section - Show when no search/selection */}
+        {!isSearching && apps.length === 0 && !selectedApp && (
+          <div className="mb-8">
+            <PopularApps
+              onSelectApp={handlePopularAppSelect}
+              country={country}
+            />
+          </div>
+        )}
+
         {/* App Search Results */}
         {apps.length > 0 && !selectedApp && (
           <div className="mb-8">
@@ -184,39 +240,58 @@ export default function DashboardPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {apps.map((app) => (
-                <AppCard key={app.id} app={app} onSelect={handleAppSelect} />
+                <div key={app.id} className="relative group">
+                  <AppCard app={app} onSelect={handleAppSelect} />
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAddToCompare(app);
+                    }}
+                    className="absolute top-2 right-2 p-1.5 bg-white/90 hover:bg-white border border-zinc-200 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Add to comparison"
+                  >
+                    <svg className="w-4 h-4 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
+                    </svg>
+                  </button>
+                </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* Selected App Header */}
+        {/* Compare Apps View */}
+        {compareApps.length > 0 && !selectedApp && (
+          <div className="mb-8">
+            <CompareView
+              apps={compareApps}
+              onRemoveApp={handleRemoveFromCompare}
+              country={country}
+            />
+          </div>
+        )}
+
+        {/* Selected App Panel */}
         {selectedApp && (
-          <div className="bg-white rounded-xl border border-zinc-100 p-4 mb-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <img
-                  src={selectedApp.icon}
-                  alt={selectedApp.name}
-                  className="w-14 h-14 rounded-xl"
-                />
-                <div>
-                  <h2 className="text-[15px] font-semibold text-zinc-900">{selectedApp.name}</h2>
-                  <p className="text-[13px] text-zinc-500">{selectedApp.developer}</p>
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  setSelectedApp(null);
-                  setReviews([]);
-                }}
-                className="p-2 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 rounded-lg transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
+          <AppDetailPanel
+            app={selectedApp}
+            onClose={() => {
+              setSelectedApp(null);
+              setReviews([]);
+              setKeywordFilter(null);
+              setResponseFilter(null);
+            }}
+          />
+        )}
+
+        {/* App Screenshots */}
+        {selectedApp && selectedApp.screenshotUrls && selectedApp.screenshotUrls.length > 0 && (
+          <div className="mb-6">
+            <AppScreenshots
+              screenshots={selectedApp.screenshotUrls}
+              ipadScreenshots={selectedApp.ipadScreenshotUrls}
+              appName={selectedApp.name}
+            />
           </div>
         )}
 
@@ -238,83 +313,253 @@ export default function DashboardPage() {
           <>
             {/* Stats Cards */}
             <div className="mb-6">
-              <StatsCards
-                totalReviews={stats.totalCount}
-                averageRating={stats.averageRating}
-                positiveCount={positiveCount}
-                negativeCount={negativeCount}
-              />
-            </div>
-
-            {/* Analytics Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-              <TrendChart reviews={reviews} />
-              <SentimentBreakdown reviews={reviews} />
-              <VersionAnalytics reviews={reviews} />
-            </div>
-
-            {/* Filters Row */}
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-6 p-4 bg-white rounded-xl border border-zinc-100">
-              <div className="flex flex-wrap items-center gap-3">
-                <DateFilter value={dateRange} onChange={setDateRange} />
-                <div className="w-px h-5 bg-zinc-200" />
-                <RatingFilter value={ratingFilter} onChange={setRatingFilter} />
-              </div>
-              <div className="flex items-center gap-3">
-                <SortDropdown value={sortBy} onChange={setSortBy} />
-                <div className="flex items-center border border-zinc-200 rounded-lg overflow-hidden">
-                  <button
-                    onClick={() => setViewMode('cards')}
-                    className={`p-1.5 ${viewMode === 'cards' ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
-                    title="Card View"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => setViewMode('table')}
-                    className={`p-1.5 ${viewMode === 'table' ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
-                    title="Table View"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Reviews Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-              {/* Sidebar - Rating Chart */}
-              <div className="lg:col-span-1 lg:sticky lg:top-20 lg:self-start">
-                <RatingChart
-                  distribution={stats.ratingDistribution}
-                  totalCount={stats.totalCount}
+              <div className="flex items-center justify-between mb-4">
+                <StatsCards
+                  totalReviews={stats.totalCount}
+                  averageRating={stats.averageRating}
+                  positiveCount={positiveCount}
+                  negativeCount={negativeCount}
+                />
+                <ExportButton
+                  app={selectedApp}
+                  stats={{ ...stats, reviews }}
+                  reviews={reviews}
+                  country={country}
                 />
               </div>
+            </div>
 
-              {/* Reviews List/Table */}
-              <div className="lg:col-span-3">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-[13px] font-medium text-zinc-500">
-                    {filteredReviews.length} reviews
-                    {dateRange !== 'all' && ` (${dateRange})`}
-                  </h2>
+            {/* Tab Navigation */}
+            <div className="flex items-center gap-1 p-1 bg-zinc-100 rounded-xl mb-6 w-fit">
+              <button
+                onClick={() => setActiveTab('analytics')}
+                className={`px-4 py-2 text-[13px] font-medium rounded-lg transition-colors ${
+                  activeTab === 'analytics'
+                    ? 'bg-white text-zinc-900 shadow-sm'
+                    : 'text-zinc-500 hover:text-zinc-700'
+                }`}
+              >
+                Analytics
+              </button>
+              <button
+                onClick={() => setActiveTab('keywords')}
+                className={`px-4 py-2 text-[13px] font-medium rounded-lg transition-colors ${
+                  activeTab === 'keywords'
+                    ? 'bg-white text-zinc-900 shadow-sm'
+                    : 'text-zinc-500 hover:text-zinc-700'
+                }`}
+              >
+                Keywords
+              </button>
+              <button
+                onClick={() => setActiveTab('regions')}
+                className={`px-4 py-2 text-[13px] font-medium rounded-lg transition-colors ${
+                  activeTab === 'regions'
+                    ? 'bg-white text-zinc-900 shadow-sm'
+                    : 'text-zinc-500 hover:text-zinc-700'
+                }`}
+              >
+                Regions
+              </button>
+              <button
+                onClick={() => setActiveTab('compare')}
+                className={`px-4 py-2 text-[13px] font-medium rounded-lg transition-colors ${
+                  activeTab === 'compare'
+                    ? 'bg-white text-zinc-900 shadow-sm'
+                    : 'text-zinc-500 hover:text-zinc-700'
+                }`}
+              >
+                Compare
+              </button>
+            </div>
+
+            {/* Analytics Tab */}
+            {activeTab === 'analytics' && (
+              <>
+                {/* Analytics Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+                  <TrendChart reviews={reviews} />
+                  <SentimentBreakdown reviews={reviews} />
+                  <VersionAnalytics reviews={reviews} />
                 </div>
 
-                {viewMode === 'cards' ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {filteredReviews.map((review) => (
-                      <ReviewCard key={review.id} review={review} />
-                    ))}
+                {/* Filters Row */}
+                <div className="flex flex-wrap items-center justify-between gap-4 mb-6 p-4 bg-white rounded-xl border border-zinc-100">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <DateFilter value={dateRange} onChange={setDateRange} />
+                    <div className="w-px h-5 bg-zinc-200" />
+                    <RatingFilter value={ratingFilter} onChange={setRatingFilter} />
                   </div>
-                ) : (
-                  <ReviewsTable reviews={filteredReviews} />
+                  <div className="flex items-center gap-3">
+                    <SortDropdown value={sortBy} onChange={setSortBy} />
+                    <div className="flex items-center border border-zinc-200 rounded-lg overflow-hidden">
+                      <button
+                        onClick={() => setViewMode('cards')}
+                        className={`p-1.5 ${viewMode === 'cards' ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
+                        title="Card View"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => setViewMode('table')}
+                        className={`p-1.5 ${viewMode === 'table' ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
+                        title="Table View"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Reviews Section */}
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                  {/* Sidebar */}
+                  <div className="lg:col-span-1 space-y-4 lg:sticky lg:top-20 lg:self-start">
+                    <RatingChart
+                      distribution={stats.ratingDistribution}
+                      totalCount={stats.totalCount}
+                    />
+                    <ResponseRateCard
+                      reviews={reviews}
+                      onFilterByResponse={setResponseFilter}
+                      currentFilter={responseFilter}
+                    />
+                  </div>
+
+                  {/* Reviews List/Table */}
+                  <div className="lg:col-span-3">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-[13px] font-medium text-zinc-500">
+                        {filteredReviews.length} reviews
+                        {dateRange !== 'all' && ` (${dateRange})`}
+                        {keywordFilter && ` matching "${keywordFilter}"`}
+                        {responseFilter !== null && (responseFilter ? ' with responses' : ' without responses')}
+                      </h2>
+                      {(keywordFilter || responseFilter !== null) && (
+                        <button
+                          onClick={() => {
+                            setKeywordFilter(null);
+                            setResponseFilter(null);
+                          }}
+                          className="text-[12px] text-zinc-500 hover:text-zinc-700"
+                        >
+                          Clear filters
+                        </button>
+                      )}
+                    </div>
+
+                    {viewMode === 'cards' ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {filteredReviews.map((review) => (
+                          <ReviewCard key={review.id} review={review} />
+                        ))}
+                      </div>
+                    ) : (
+                      <ReviewsTable reviews={filteredReviews} />
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Keywords Tab */}
+            {activeTab === 'keywords' && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div className="lg:col-span-2">
+                  <KeywordCloud
+                    reviews={reviews}
+                    onFilterByKeyword={(keyword) => {
+                      setKeywordFilter(keyword);
+                      if (keyword) setActiveTab('analytics');
+                    }}
+                  />
+                </div>
+                <div>
+                  <div className="bg-white rounded-xl border border-zinc-100 p-4">
+                    <h3 className="text-[13px] font-medium text-zinc-900 mb-3">How to use</h3>
+                    <ul className="space-y-2 text-[12px] text-zinc-600">
+                      <li className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 mt-1.5 flex-shrink-0" />
+                        Click any keyword to filter reviews containing that word
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 mt-1.5 flex-shrink-0" />
+                        Larger words appear more frequently in reviews
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 flex-shrink-0" />
+                        Green keywords are associated with positive reviews
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-400 mt-1.5 flex-shrink-0" />
+                        Red keywords indicate pain points or issues
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 mt-1.5 flex-shrink-0" />
+                        Use &quot;Pain Points&quot; view to focus on negative feedback
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Regions Tab */}
+            {activeTab === 'regions' && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <RegionComparison
+                  appId={selectedApp.id}
+                  appName={selectedApp.name}
+                />
+                <div className="bg-white rounded-xl border border-zinc-100 p-4">
+                  <h3 className="text-[13px] font-medium text-zinc-900 mb-3">About Regional Data</h3>
+                  <p className="text-[12px] text-zinc-600 leading-relaxed mb-4">
+                    This view shows how the app performs across different App Store regions.
+                    Ratings and review counts may vary significantly between countries due to:
+                  </p>
+                  <ul className="space-y-2 text-[12px] text-zinc-600">
+                    <li className="flex items-start gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 mt-1.5 flex-shrink-0" />
+                      Different user expectations by market
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 mt-1.5 flex-shrink-0" />
+                      Feature availability varying by region
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 mt-1.5 flex-shrink-0" />
+                      Localization quality differences
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 mt-1.5 flex-shrink-0" />
+                      Customer support availability
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {/* Compare Tab */}
+            {activeTab === 'compare' && (
+              <div>
+                <CompareView
+                  apps={compareApps}
+                  onRemoveApp={handleRemoveFromCompare}
+                  country={country}
+                />
+                {compareApps.length < 3 && (
+                  <div className="mt-4 p-4 bg-zinc-50 rounded-xl text-center">
+                    <p className="text-[13px] text-zinc-600">
+                      Search for apps and click the + button to add them for comparison (up to 3 apps)
+                    </p>
+                  </div>
                 )}
               </div>
-            </div>
+            )}
           </>
         )}
 
@@ -327,18 +572,6 @@ export default function DashboardPage() {
               </svg>
             </div>
             <p className="text-[13px] text-zinc-500">No reviews found for this region</p>
-          </div>
-        )}
-
-        {/* Initial State */}
-        {!isSearching && apps.length === 0 && !selectedApp && (
-          <div className="text-center py-16">
-            <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-zinc-100 flex items-center justify-center">
-              <svg className="w-6 h-6 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-            <p className="text-[13px] text-zinc-500">Search for an app to get started</p>
           </div>
         )}
       </main>
