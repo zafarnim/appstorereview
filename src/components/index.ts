@@ -22,6 +22,7 @@ export { default as KeywordCloud } from './KeywordCloud';
 export { default as RegionComparison } from './RegionComparison';
 export { default as CompareView } from './CompareView';
 export { default as ExportButton } from './ExportButton';
+export { default as Logo } from './Logo';
 
 export type { SortOption } from './SortDropdown';
 export type { DateRange } from './DateFilter';

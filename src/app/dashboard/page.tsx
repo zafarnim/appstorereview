@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { track } from '@vercel/analytics';
 import { Review, ReviewsResponse, App } from '@/types';
 import {
   Header,
@@ -65,6 +66,11 @@ function DashboardContent() {
   const [dateRange, setDateRange] = useState<DateRange>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('cards');
   const [activeTab, setActiveTab] = useState<TabView>('analytics');
+
+  const handleTabChange = (tab: TabView) => {
+    track('tab_switched', { tab });
+    setActiveTab(tab);
+  };
   const [keywordFilter, setKeywordFilter] = useState<string | null>(null);
   const [compareApps, setCompareApps] = useState<App[]>([]);
   const [stats, setStats] = useState({
@@ -104,6 +110,9 @@ function DashboardContent() {
     setSelectedApp(null);
     setReviews([]);
 
+    // Track search
+    track('app_search', { query, country });
+
     try {
       const response = await fetch(
         `/api/search?q=${encodeURIComponent(query)}&country=${country}`
@@ -115,6 +124,7 @@ function DashboardContent() {
 
       const data = await response.json();
       setApps(data.apps || []);
+      track('search_results', { query, resultsCount: data.apps?.length || 0 });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -151,12 +161,14 @@ function DashboardContent() {
   };
 
   const handleAppSelect = (app: App) => {
+    track('app_selected', { appId: app.id, appName: app.name, source: 'search' });
     setSelectedApp(app);
     setKeywordFilter(null);
     fetchReviews(app.id);
   };
 
   const handlePopularAppSelect = (app: App) => {
+    track('app_selected', { appId: app.id, appName: app.name, source: 'popular' });
     setApps([]);
     setSelectedApp(app);
     setKeywordFilter(null);
@@ -165,6 +177,7 @@ function DashboardContent() {
 
   const handleAddToCompare = (app: App) => {
     if (compareApps.length < 3 && !compareApps.find(a => a.id === app.id)) {
+      track('app_added_to_compare', { appId: app.id, appName: app.name });
       setCompareApps([...compareApps, app]);
     }
   };
@@ -370,7 +383,7 @@ function DashboardContent() {
             {/* Tab Navigation */}
             <div className="flex items-center gap-1 p-1 bg-zinc-100 rounded-xl mb-6 w-fit">
               <button
-                onClick={() => setActiveTab('analytics')}
+                onClick={() => handleTabChange('analytics')}
                 className={`px-4 py-2 text-[13px] font-medium rounded-lg transition-colors ${
                   activeTab === 'analytics'
                     ? 'bg-white text-zinc-900 shadow-sm'
@@ -380,7 +393,7 @@ function DashboardContent() {
                 Analytics
               </button>
               <button
-                onClick={() => setActiveTab('keywords')}
+                onClick={() => handleTabChange('keywords')}
                 className={`px-4 py-2 text-[13px] font-medium rounded-lg transition-colors ${
                   activeTab === 'keywords'
                     ? 'bg-white text-zinc-900 shadow-sm'
@@ -390,7 +403,7 @@ function DashboardContent() {
                 Keywords
               </button>
               <button
-                onClick={() => setActiveTab('regions')}
+                onClick={() => handleTabChange('regions')}
                 className={`px-4 py-2 text-[13px] font-medium rounded-lg transition-colors ${
                   activeTab === 'regions'
                     ? 'bg-white text-zinc-900 shadow-sm'
@@ -400,7 +413,7 @@ function DashboardContent() {
                 Regions
               </button>
               <button
-                onClick={() => setActiveTab('compare')}
+                onClick={() => handleTabChange('compare')}
                 className={`px-4 py-2 text-[13px] font-medium rounded-lg transition-colors ${
                   activeTab === 'compare'
                     ? 'bg-white text-zinc-900 shadow-sm'

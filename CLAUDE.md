@@ -1,13 +1,14 @@
-# ReviewSpy - App Store Review Analytics
+# Pikan Review - App Store Review Analytics
 
 ## Project Overview
-ReviewSpy is a Next.js application for analyzing iOS App Store reviews. It fetches real-time data from the iTunes API to provide insights on app ratings, sentiment, keywords, and regional performance.
+Pikan Review is a Next.js application for analyzing iOS App Store reviews. It fetches real-time data from the iTunes API to provide insights on app ratings, sentiment, keywords, and regional performance.
 
 ## Tech Stack
 - **Framework:** Next.js 16.1.4 with App Router
 - **React:** 19.2.3
 - **Styling:** Tailwind CSS v4
 - **Language:** TypeScript 5
+- **Analytics:** Vercel Analytics & Speed Insights
 
 ## Project Structure
 ```
@@ -15,13 +16,14 @@ src/
 ├── app/
 │   ├── api/
 │   │   ├── lookup/route.ts     # Single app lookup by ID
-│   │   ├── popular/route.ts    # Top charts (Business/Productivity)
+│   │   ├── popular/route.ts    # Top charts by category
 │   │   ├── reviews/route.ts    # Fetch app reviews
 │   │   └── search/route.ts     # Search apps by name
 │   ├── dashboard/page.tsx      # Main analytics dashboard
 │   ├── page.tsx                # Landing page
-│   └── layout.tsx              # Root layout
+│   └── layout.tsx              # Root layout with SEO
 ├── components/
+│   ├── Logo.tsx                # Pikan Review logo component
 │   ├── AppCard.tsx             # App search result card
 │   ├── AppDetailPanel.tsx      # Enhanced app details view
 │   ├── AppScreenshots.tsx      # Screenshot carousel
@@ -29,13 +31,12 @@ src/
 │   ├── CountrySelect.tsx       # Country dropdown
 │   ├── DateFilter.tsx          # Date range filter
 │   ├── ExportButton.tsx        # CSV/PDF export
-│   ├── Header.tsx              # Navigation header
+│   ├── Header.tsx              # Navigation header with logo
 │   ├── KeywordCloud.tsx        # Word cloud visualization
 │   ├── PopularApps.tsx         # Trending apps section
 │   ├── RatingChart.tsx         # Rating distribution chart
 │   ├── RatingFilter.tsx        # Star rating filter
 │   ├── RegionComparison.tsx    # Multi-region comparison
-│   ├── ResponseRateCard.tsx    # Developer response metrics
 │   ├── ReviewCard.tsx          # Individual review card
 │   ├── ReviewsTable.tsx        # Table view for reviews
 │   ├── SearchBar.tsx           # App search input
@@ -70,16 +71,19 @@ npm run lint     # Run ESLint
 5. **Multi-Region Comparison** - Compare ratings across countries
 6. **App Comparison** - Side-by-side comparison of up to 3 apps
 7. **Export** - Download reviews as CSV or generate PDF reports
-8. **Developer Response Tracking** - Track response rates to reviews
+8. **Popular Apps** - Browse top apps by category (12 categories)
 
 ## API Endpoints
 - `GET /api/search?q={query}&country={code}` - Search apps
 - `GET /api/reviews?appId={id}&country={code}` - Get reviews
 - `GET /api/lookup?appId={id}&country={code}` - Get app details
-- `GET /api/popular?genre={business|productivity}&country={code}` - Top charts
+- `GET /api/popular?genre={category}&country={code}` - Top charts
+
+## Supported Categories
+Business, Productivity, Finance, Health & Fitness, Social, Lifestyle, Education, Entertainment, Utilities, Travel, Food & Drink, Shopping
 
 ## Supported Countries
-US, GB, CA, AU, SE, IN, DE, FR, JP
+US, GB, CA, AU, SE (default), IN, DE, FR, JP
 
 ## Data Sources
 All data is fetched from Apple's iTunes API:
@@ -88,8 +92,21 @@ All data is fetched from Apple's iTunes API:
 - RSS Reviews: `https://itunes.apple.com/rss/customerreviews`
 - RSS Top Charts: `https://itunes.apple.com/rss/topfreeapplications`
 
+## Analytics
+Pikan Review uses Vercel Analytics for:
+- Page views and unique visitors
+- Feature usage tracking (app searches, exports, comparisons)
+- Performance monitoring with Speed Insights
+
+## SEO
+- Comprehensive meta tags in layout.tsx
+- Open Graph and Twitter Card support
+- robots.txt and sitemap support
+- Semantic HTML structure
+
 ## Development Notes
 - App uses client-side rendering for the dashboard (`'use client'`)
 - iTunes API responses are cached for 5-10 minutes
 - Reviews are fetched in parallel (up to 10 pages = 500 reviews)
 - Screenshots support both iPhone and iPad variants
+- Default country is Sweden (SE)
