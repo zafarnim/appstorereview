@@ -24,7 +24,6 @@ import {
   RegionComparison,
   CompareView,
   ExportButton,
-  ResponseRateCard,
 } from '@/components';
 import type { SortOption, DateRange } from '@/components';
 import { filterReviewsByKeyword } from '@/lib/textAnalysis';
@@ -67,7 +66,6 @@ function DashboardContent() {
   const [viewMode, setViewMode] = useState<ViewMode>('cards');
   const [activeTab, setActiveTab] = useState<TabView>('analytics');
   const [keywordFilter, setKeywordFilter] = useState<string | null>(null);
-  const [responseFilter, setResponseFilter] = useState<boolean | null>(null);
   const [compareApps, setCompareApps] = useState<App[]>([]);
   const [stats, setStats] = useState({
     totalCount: 0,
@@ -155,7 +153,6 @@ function DashboardContent() {
   const handleAppSelect = (app: App) => {
     setSelectedApp(app);
     setKeywordFilter(null);
-    setResponseFilter(null);
     fetchReviews(app.id);
   };
 
@@ -163,7 +160,6 @@ function DashboardContent() {
     setApps([]);
     setSelectedApp(app);
     setKeywordFilter(null);
-    setResponseFilter(null);
     fetchReviews(app.id);
   };
 
@@ -190,13 +186,6 @@ function DashboardContent() {
     // Keyword filter
     if (keywordFilter) {
       filtered = filterReviewsByKeyword(filtered, keywordFilter);
-    }
-
-    // Response filter
-    if (responseFilter !== null) {
-      filtered = filtered.filter(r =>
-        responseFilter ? !!r.developerResponse : !r.developerResponse
-      );
     }
 
     // Date filter
@@ -229,7 +218,7 @@ function DashboardContent() {
     });
 
     return filtered;
-  }, [reviews, ratingFilter, sortBy, dateRange, keywordFilter, responseFilter]);
+  }, [reviews, ratingFilter, sortBy, dateRange, keywordFilter]);
 
   const positiveCount = reviews.filter((r) => r.rating >= 4).length;
   const negativeCount = reviews.filter((r) => r.rating <= 2).length;
@@ -338,7 +327,6 @@ function DashboardContent() {
               setSelectedApp(null);
               setReviews([]);
               setKeywordFilter(null);
-              setResponseFilter(null);
               // Clear URL parameter
               window.history.replaceState({}, '', '/dashboard');
             }}
@@ -468,15 +456,10 @@ function DashboardContent() {
                 {/* Reviews Section */}
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
                   {/* Sidebar */}
-                  <div className="lg:col-span-1 space-y-4 lg:sticky lg:top-20 lg:self-start">
+                  <div className="lg:col-span-1 lg:sticky lg:top-20 lg:self-start">
                     <RatingChart
                       distribution={stats.ratingDistribution}
                       totalCount={stats.totalCount}
-                    />
-                    <ResponseRateCard
-                      reviews={reviews}
-                      onFilterByResponse={setResponseFilter}
-                      currentFilter={responseFilter}
                     />
                   </div>
 
@@ -487,17 +470,13 @@ function DashboardContent() {
                         {filteredReviews.length} reviews
                         {dateRange !== 'all' && ` (${dateRange})`}
                         {keywordFilter && ` matching "${keywordFilter}"`}
-                        {responseFilter !== null && (responseFilter ? ' with responses' : ' without responses')}
                       </h2>
-                      {(keywordFilter || responseFilter !== null) && (
+                      {keywordFilter && (
                         <button
-                          onClick={() => {
-                            setKeywordFilter(null);
-                            setResponseFilter(null);
-                          }}
+                          onClick={() => setKeywordFilter(null)}
                           className="text-[12px] text-zinc-500 hover:text-zinc-700"
                         >
-                          Clear filters
+                          Clear filter
                         </button>
                       )}
                     </div>
