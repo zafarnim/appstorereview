@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { Analytics } from "@vercel/analytics/react";
-import { SpeedInsights } from "@vercel/speed-insights/next";
+import Analytics from "@/components/Analytics";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -21,7 +20,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://pikanreview.com'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://pikanreview.com'),
   title: {
     default: 'Pikan Review - App Store Review Analytics',
     template: '%s | Pikan Review',
@@ -58,7 +57,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://pikanreview.com',
+    url: process.env.NEXT_PUBLIC_SITE_URL || 'https://pikanreview.com',
     siteName: 'Pikan Review',
     title: 'Pikan Review - App Store Review Analytics',
     description: 'Analyze iOS App Store reviews instantly. Get insights on ratings, sentiment, keywords, and regional performance.',
@@ -90,7 +89,7 @@ export const metadata: Metadata = {
   },
   manifest: '/site.webmanifest',
   alternates: {
-    canonical: 'https://pikanreview.com',
+    canonical: process.env.NEXT_PUBLIC_SITE_URL || 'https://pikanreview.com',
   },
 };
 
@@ -110,7 +109,6 @@ export default function RootLayout({
       >
         {children}
         <Analytics />
-        <SpeedInsights />
       </body>
     </html>
   );

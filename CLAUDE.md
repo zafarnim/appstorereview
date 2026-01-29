@@ -93,10 +93,38 @@ All data is fetched from Apple's iTunes API:
 - RSS Top Charts: `https://itunes.apple.com/rss/topfreeapplications`
 
 ## Analytics
-Pikan Review uses Vercel Analytics for:
-- Page views and unique visitors
-- Feature usage tracking (app searches, exports, comparisons)
-- Performance monitoring with Speed Insights
+Pikan Review supports multiple analytics providers (configure via environment variables):
+
+**Umami (Recommended for self-hosted)**
+```
+NEXT_PUBLIC_UMAMI_WEBSITE_ID=your-website-id
+NEXT_PUBLIC_UMAMI_URL=https://your-umami-instance.com
+```
+
+**Plausible**
+```
+NEXT_PUBLIC_PLAUSIBLE_DOMAIN=pikanreview.com
+NEXT_PUBLIC_PLAUSIBLE_URL=https://plausible.io  # or your self-hosted URL
+```
+
+**Google Analytics**
+```
+NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX
+```
+
+**PostHog**
+```
+NEXT_PUBLIC_POSTHOG_KEY=phc_xxxxxxxxxxxxx
+NEXT_PUBLIC_POSTHOG_HOST=https://app.posthog.com  # or your self-hosted URL
+```
+
+Events tracked:
+- `app_search` - User searches for an app
+- `app_selected` - User selects an app to analyze
+- `app_selected_homepage` - User clicks app from homepage
+- `tab_switched` - User switches analytics tab
+- `app_added_to_compare` - User adds app to comparison
+- `cta_clicked` - User clicks call-to-action button
 
 ## SEO
 - Comprehensive meta tags in layout.tsx

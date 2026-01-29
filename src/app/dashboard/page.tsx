@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { track } from '@vercel/analytics';
 import { Review, ReviewsResponse, App } from '@/types';
+import { trackEvent } from '@/components/Analytics';
 import {
   Header,
   SearchBar,
@@ -68,7 +68,7 @@ function DashboardContent() {
   const [activeTab, setActiveTab] = useState<TabView>('analytics');
 
   const handleTabChange = (tab: TabView) => {
-    track('tab_switched', { tab });
+    trackEvent('tab_switched', { tab });
     setActiveTab(tab);
   };
   const [keywordFilter, setKeywordFilter] = useState<string | null>(null);
@@ -111,7 +111,7 @@ function DashboardContent() {
     setReviews([]);
 
     // Track search
-    track('app_search', { query, country });
+    trackEvent('app_search', { query, country });
 
     try {
       const response = await fetch(
@@ -124,7 +124,7 @@ function DashboardContent() {
 
       const data = await response.json();
       setApps(data.apps || []);
-      track('search_results', { query, resultsCount: data.apps?.length || 0 });
+      trackEvent('search_results', { query, resultsCount: data.apps?.length || 0 });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -161,14 +161,14 @@ function DashboardContent() {
   };
 
   const handleAppSelect = (app: App) => {
-    track('app_selected', { appId: app.id, appName: app.name, source: 'search' });
+    trackEvent('app_selected', { appId: app.id, appName: app.name, source: 'search' });
     setSelectedApp(app);
     setKeywordFilter(null);
     fetchReviews(app.id);
   };
 
   const handlePopularAppSelect = (app: App) => {
-    track('app_selected', { appId: app.id, appName: app.name, source: 'popular' });
+    trackEvent('app_selected', { appId: app.id, appName: app.name, source: 'popular' });
     setApps([]);
     setSelectedApp(app);
     setKeywordFilter(null);
@@ -177,7 +177,7 @@ function DashboardContent() {
 
   const handleAddToCompare = (app: App) => {
     if (compareApps.length < 3 && !compareApps.find(a => a.id === app.id)) {
-      track('app_added_to_compare', { appId: app.id, appName: app.name });
+      trackEvent('app_added_to_compare', { appId: app.id, appName: app.name });
       setCompareApps([...compareApps, app]);
     }
   };

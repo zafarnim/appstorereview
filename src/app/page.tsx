@@ -2,9 +2,9 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { track } from '@vercel/analytics';
 import { Header, PopularApps } from '@/components';
 import Logo from '@/components/Logo';
+import { trackEvent } from '@/components/Analytics';
 import { App } from '@/types';
 
 export default function Home() {
@@ -12,12 +12,12 @@ export default function Home() {
 
   const handleSelectApp = (app: App) => {
     // Track app selection from homepage
-    track('app_selected_homepage', { appId: app.id, appName: app.name });
+    trackEvent('app_selected_homepage', { appId: app.id, appName: app.name });
     router.push(`/dashboard?app=${app.id}`);
   };
 
   const handleGetStarted = () => {
-    track('cta_clicked', { location: 'hero' });
+    trackEvent('cta_clicked', { location: 'hero' });
   };
 
   return (
