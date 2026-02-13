@@ -101,6 +101,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <script defer src="https://umami.farimani.se/script.js" data-website-id="433d7e04-0bb5-4b17-b658-a19d88bb341f"></script>
         <link rel="preconnect" href="https://itunes.apple.com" />
         <link rel="dns-prefetch" href="https://itunes.apple.com" />
       </head>
