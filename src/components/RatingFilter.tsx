@@ -1,5 +1,7 @@
 'use client';
 
+import { trackEvent } from '@/components/Analytics';
+
 interface RatingFilterProps {
   value: number | null;
   onChange: (rating: number | null) => void;
@@ -21,7 +23,10 @@ export default function RatingFilter({ value, onChange }: RatingFilterProps) {
       {ratings.map((rating) => (
         <button
           key={rating.value ?? 'all'}
-          onClick={() => onChange(rating.value)}
+          onClick={() => {
+            trackEvent('rating_filtered', { rating: rating.value ?? 'all' });
+            onChange(rating.value);
+          }}
           className={`inline-flex items-center gap-1 px-2.5 py-1 text-[12px] font-medium rounded-md transition-all ${
             value === rating.value
               ? 'bg-zinc-900 text-white'

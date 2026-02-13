@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { App, ReviewsResponse } from '@/types';
 import StarRating from './StarRating';
 import Image from 'next/image';
+import { trackEvent } from '@/components/Analytics';
 
 interface AppComparison {
   app: App;
@@ -122,7 +123,10 @@ export default function CompareView({ apps, onRemoveApp, country }: CompareViewP
                 {/* App Header */}
                 <div className="relative mb-4">
                   <button
-                    onClick={() => onRemoveApp(app.id)}
+                    onClick={() => {
+                      trackEvent('app_removed_from_compare', { appId: app.id, appName: app.name });
+                      onRemoveApp(app.id);
+                    }}
                     className="absolute -top-2 -right-2 w-6 h-6 bg-zinc-100 hover:bg-zinc-200 rounded-full flex items-center justify-center text-zinc-500 hover:text-zinc-700 transition-colors"
                     aria-label="Remove from comparison"
                   >

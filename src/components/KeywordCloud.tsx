@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { Review, KeywordData } from '@/types';
 import { getTopKeywords, getPainPoints, filterReviewsByKeyword } from '@/lib/textAnalysis';
+import { trackEvent } from '@/components/Analytics';
 
 interface KeywordCloudProps {
   reviews: Review[];
@@ -48,9 +49,12 @@ export default function KeywordCloud({ reviews, onFilterByKeyword }: KeywordClou
 
   const handleKeywordClick = (keyword: string) => {
     if (selectedKeyword === keyword) {
+      trackEvent('keyword_filter_cleared');
       setSelectedKeyword(null);
       onFilterByKeyword?.(null);
     } else {
+      const kw = keywords.find(k => k.word === keyword);
+      trackEvent('keyword_selected', { keyword, sentiment: kw?.sentiment });
       setSelectedKeyword(keyword);
       onFilterByKeyword?.(keyword);
     }
@@ -73,6 +77,7 @@ export default function KeywordCloud({ reviews, onFilterByKeyword }: KeywordClou
         <div className="flex items-center gap-1 p-0.5 bg-zinc-100 rounded-lg">
           <button
             onClick={() => {
+              trackEvent('keyword_view_changed', { view: 'all' });
               setViewMode('all');
               setSelectedKeyword(null);
               onFilterByKeyword?.(null);
@@ -85,6 +90,7 @@ export default function KeywordCloud({ reviews, onFilterByKeyword }: KeywordClou
           </button>
           <button
             onClick={() => {
+              trackEvent('keyword_view_changed', { view: 'painpoints' });
               setViewMode('painpoints');
               setSelectedKeyword(null);
               onFilterByKeyword?.(null);

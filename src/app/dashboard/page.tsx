@@ -445,7 +445,7 @@ function DashboardContent() {
                     <SortDropdown value={sortBy} onChange={setSortBy} />
                     <div className="flex items-center border border-zinc-200 rounded-lg overflow-hidden">
                       <button
-                        onClick={() => setViewMode('cards')}
+                        onClick={() => { trackEvent('view_mode_changed', { mode: 'cards' }); setViewMode('cards'); }}
                         className={`p-1.5 ${viewMode === 'cards' ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
                         title="Card View"
                       >
@@ -454,7 +454,7 @@ function DashboardContent() {
                         </svg>
                       </button>
                       <button
-                        onClick={() => setViewMode('table')}
+                        onClick={() => { trackEvent('view_mode_changed', { mode: 'table' }); setViewMode('table'); }}
                         className={`p-1.5 ${viewMode === 'table' ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
                         title="Table View"
                       >

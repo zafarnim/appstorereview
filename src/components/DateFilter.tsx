@@ -1,5 +1,7 @@
 'use client';
 
+import { trackEvent } from '@/components/Analytics';
+
 export type DateRange = 'all' | '7d' | '30d' | '90d' | '1y';
 
 interface DateFilterProps {
@@ -21,7 +23,10 @@ export default function DateFilter({ value, onChange }: DateFilterProps) {
       {options.map((option) => (
         <button
           key={option.value}
-          onClick={() => onChange(option.value)}
+          onClick={() => {
+            trackEvent('date_filtered', { range: option.value });
+            onChange(option.value);
+          }}
           className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-all ${
             value === option.value
               ? 'bg-zinc-900 text-white'

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Review } from '@/types';
 import StarRating from './StarRating';
+import { trackEvent } from '@/components/Analytics';
 
 interface ReviewsTableProps {
   reviews: Review[];
@@ -46,7 +47,10 @@ export default function ReviewsTable({ reviews }: ReviewsTableProps) {
             <tr
               key={review.id}
               className="hover:bg-zinc-50 cursor-pointer transition-colors"
-              onClick={() => setExpandedId(expandedId === review.id ? null : review.id)}
+              onClick={() => {
+                trackEvent('review_expanded', { reviewId: review.id, expanded: expandedId !== review.id });
+                setExpandedId(expandedId === review.id ? null : review.id);
+              }}
             >
               <td className="px-4 py-3">
                 <StarRating rating={review.rating} size="sm" />

@@ -1,6 +1,7 @@
 'use client';
 
 import { COUNTRIES } from '@/types';
+import { trackEvent } from '@/components/Analytics';
 
 interface CountrySelectProps {
   value: string;
@@ -12,7 +13,10 @@ export default function CountrySelect({ value, onChange }: CountrySelectProps) {
     <div className="relative">
       <select
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+          trackEvent('country_changed', { country: e.target.value });
+          onChange(e.target.value);
+        }}
         className="appearance-none w-full px-3 py-2 pr-9 bg-white border border-zinc-200 rounded-lg text-[13px] text-zinc-700 font-medium focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-300 cursor-pointer shadow-sm"
       >
         <option value="">All Countries</option>

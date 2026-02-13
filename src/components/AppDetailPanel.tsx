@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { App, COUNTRIES } from '@/types';
 import StarRating from './StarRating';
 import Image from 'next/image';
+import { trackEvent } from '@/components/Analytics';
 
 interface AppDetailPanelProps {
   app: App;
@@ -108,7 +109,10 @@ export default function AppDetailPanel({ app, onClose }: AppDetailPanelProps) {
       <div className="relative bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 p-6 pb-8">
         {/* Close Button */}
         <button
-          onClick={onClose}
+          onClick={() => {
+            trackEvent('app_detail_closed', { appId: app.id });
+            onClose();
+          }}
           className="absolute top-4 right-4 p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-full transition-all"
           aria-label="Close"
         >
@@ -188,7 +192,7 @@ export default function AppDetailPanel({ app, onClose }: AppDetailPanelProps) {
               {app.ipadScreenshotUrls && app.ipadScreenshotUrls.length > 0 && (
                 <div className="flex items-center gap-1 p-0.5 bg-zinc-100 rounded-lg">
                   <button
-                    onClick={() => { setShowIpadScreenshots(false); setCurrentScreenshot(0); }}
+                    onClick={() => { trackEvent('screenshot_device_changed', { device: 'iphone', appId: app.id }); setShowIpadScreenshots(false); setCurrentScreenshot(0); }}
                     className={`px-3 py-1.5 text-[11px] font-medium rounded-md transition-all ${
                       !showIpadScreenshots ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'
                     }`}
@@ -196,7 +200,7 @@ export default function AppDetailPanel({ app, onClose }: AppDetailPanelProps) {
                     iPhone
                   </button>
                   <button
-                    onClick={() => { setShowIpadScreenshots(true); setCurrentScreenshot(0); }}
+                    onClick={() => { trackEvent('screenshot_device_changed', { device: 'ipad', appId: app.id }); setShowIpadScreenshots(true); setCurrentScreenshot(0); }}
                     className={`px-3 py-1.5 text-[11px] font-medium rounded-md transition-all ${
                       showIpadScreenshots ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'
                     }`}
@@ -231,7 +235,10 @@ export default function AppDetailPanel({ app, onClose }: AppDetailPanelProps) {
                 {screenshots.length > 1 && (
                   <>
                     <button
-                      onClick={() => setCurrentScreenshot(prev => prev > 0 ? prev - 1 : screenshots.length - 1)}
+                      onClick={() => {
+                        trackEvent('screenshot_navigated', { direction: 'previous', appId: app.id });
+                        setCurrentScreenshot(prev => prev > 0 ? prev - 1 : screenshots.length - 1);
+                      }}
                       className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 hover:bg-white rounded-full shadow-lg flex items-center justify-center text-zinc-600 hover:text-zinc-900 transition-all"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -239,7 +246,10 @@ export default function AppDetailPanel({ app, onClose }: AppDetailPanelProps) {
                       </svg>
                     </button>
                     <button
-                      onClick={() => setCurrentScreenshot(prev => prev < screenshots.length - 1 ? prev + 1 : 0)}
+                      onClick={() => {
+                        trackEvent('screenshot_navigated', { direction: 'next', appId: app.id });
+                        setCurrentScreenshot(prev => prev < screenshots.length - 1 ? prev + 1 : 0);
+                      }}
                       className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 hover:bg-white rounded-full shadow-lg flex items-center justify-center text-zinc-600 hover:text-zinc-900 transition-all"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -387,7 +397,10 @@ export default function AppDetailPanel({ app, onClose }: AppDetailPanelProps) {
               </p>
               {app.description.length > 300 && (
                 <button
-                  onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                  onClick={() => {
+                    trackEvent('description_toggled', { appId: app.id, expanded: !isDescriptionExpanded });
+                    setIsDescriptionExpanded(!isDescriptionExpanded);
+                  }}
                   className="mt-2 text-[13px] text-zinc-900 font-medium hover:underline inline-flex items-center gap-1"
                 >
                   {isDescriptionExpanded ? 'Show Less' : 'Read More'}
@@ -422,7 +435,10 @@ export default function AppDetailPanel({ app, onClose }: AppDetailPanelProps) {
               </p>
               {app.releaseNotes.length > 200 && (
                 <button
-                  onClick={() => setIsReleaseNotesExpanded(!isReleaseNotesExpanded)}
+                  onClick={() => {
+                    trackEvent('release_notes_toggled', { appId: app.id, expanded: !isReleaseNotesExpanded });
+                    setIsReleaseNotesExpanded(!isReleaseNotesExpanded);
+                  }}
                   className="mt-2 text-[13px] text-zinc-900 font-medium hover:underline inline-flex items-center gap-1"
                 >
                   {isReleaseNotesExpanded ? 'Show Less' : 'Read More'}
@@ -447,6 +463,7 @@ export default function AppDetailPanel({ app, onClose }: AppDetailPanelProps) {
               href={app.trackUrl}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackEvent('external_link_clicked', { link: 'app_store', appId: app.id })}
               className="inline-flex items-center gap-2 px-4 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-white text-[13px] font-medium rounded-xl transition-colors"
             >
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -460,6 +477,7 @@ export default function AppDetailPanel({ app, onClose }: AppDetailPanelProps) {
               href={app.developerUrl}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackEvent('external_link_clicked', { link: 'developer_page', appId: app.id })}
               className="inline-flex items-center gap-2 px-4 py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-[13px] font-medium rounded-xl transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -473,6 +491,7 @@ export default function AppDetailPanel({ app, onClose }: AppDetailPanelProps) {
               href={app.sellerUrl}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackEvent('external_link_clicked', { link: 'website', appId: app.id })}
               className="inline-flex items-center gap-2 px-4 py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-[13px] font-medium rounded-xl transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

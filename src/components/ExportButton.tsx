@@ -9,6 +9,7 @@ import {
   generateShareableLink,
   copyToClipboard,
 } from '@/lib/export';
+import { trackEvent } from '@/components/Analytics';
 
 interface ExportButtonProps {
   app: App;
@@ -34,21 +35,25 @@ export default function ExportButton({ app, stats, reviews, country }: ExportBut
   }, []);
 
   const handleExportCSV = () => {
+    trackEvent('exported', { format: 'csv', type: 'reviews', appId: app.id, count: reviews.length });
     exportToCSV(reviews, app.name);
     setIsOpen(false);
   };
 
   const handleExportStats = () => {
+    trackEvent('exported', { format: 'csv', type: 'stats', appId: app.id });
     exportAppDataToCSV(app, stats);
     setIsOpen(false);
   };
 
   const handleExportPDF = () => {
+    trackEvent('exported', { format: 'pdf', type: 'report', appId: app.id });
     exportToPDF(app, stats, reviews);
     setIsOpen(false);
   };
 
   const handleCopyLink = async () => {
+    trackEvent('link_copied', { appId: app.id });
     const link = generateShareableLink(app.id, country);
     const success = await copyToClipboard(link);
     if (success) {

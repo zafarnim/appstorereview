@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Review } from '@/types';
 import StarRating from './StarRating';
+import { trackEvent } from '@/components/Analytics';
 
 interface ReviewCardProps {
   review: Review;
@@ -61,7 +62,10 @@ export default function ReviewCard({ review }: ReviewCardProps) {
 
       {review.content.length > 150 && (
         <button
-          onClick={() => setIsExpanded(!isExpanded)}
+          onClick={() => {
+            trackEvent('review_expanded', { reviewId: review.id, expanded: !isExpanded });
+            setIsExpanded(!isExpanded);
+          }}
           className="text-[11px] text-zinc-500 hover:text-zinc-700 mb-3"
         >
           {isExpanded ? 'Show less' : 'Read more'}

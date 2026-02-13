@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { PopularApp, COUNTRIES } from '@/types';
 import StarRating from './StarRating';
 import Image from 'next/image';
+import { trackEvent } from '@/components/Analytics';
 
 // Category configuration with icons
 const CATEGORIES = [
@@ -81,7 +82,10 @@ export default function PopularApps({ onSelectApp, country: initialCountry }: Po
         <div className="relative">
           <select
             value={selectedCountry}
-            onChange={(e) => setSelectedCountry(e.target.value)}
+            onChange={(e) => {
+              trackEvent('popular_country_changed', { country: e.target.value });
+              setSelectedCountry(e.target.value);
+            }}
             className="appearance-none bg-zinc-50 border border-zinc-200 rounded-lg pl-8 pr-8 py-1.5 text-[12px] font-medium text-zinc-700 cursor-pointer hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-300"
           >
             {COUNTRIES.map((c) => (
@@ -110,7 +114,10 @@ export default function PopularApps({ onSelectApp, country: initialCountry }: Po
           {CATEGORIES.map((cat) => (
             <button
               key={cat.id}
-              onClick={() => setCategory(cat.id)}
+              onClick={() => {
+                trackEvent('popular_category_selected', { category: cat.id });
+                setCategory(cat.id);
+              }}
               className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium transition-colors ${
                 category === cat.id
                   ? 'bg-zinc-900 text-white'
